@@ -25,6 +25,15 @@ class SessionInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final token = _tokens.access;
+    if (token != null && !options.path.contains('/auth/')) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (_readAccess() case final token?) {
       options.headers['Authorization'] = 'Bearer ${token.value}';
     }
