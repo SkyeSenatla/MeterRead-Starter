@@ -1,0 +1,7 @@
+# Week 11 Day 4: flutter gen-l10n turns lib/l10n/*.arb into AppLocalizations.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+nullable-getter: false
+# Formatted as it's generated, so CI's format step never trips on it.
+format: true
