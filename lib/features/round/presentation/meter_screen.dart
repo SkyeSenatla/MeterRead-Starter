@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meterread/app/failure_text.dart';
+import 'package:meterread/app/failure_view.dart';
 import 'package:meterread/app/format.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
+import 'package:meterread/core/network/failure.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:meterread/features/round/presentation/reading_form.dart';
 import 'package:meterread/features/round/presentation/round_providers.dart';
@@ -22,7 +25,10 @@ class MeterScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(meterId), actions: const [TestToolsButton()]),
       body: switch (ref.watch(meterDetailProvider(meterId))) {
         AsyncData(:final value) => _MeterBody(meter: value),
-        AsyncError(:final error) => Center(child: Text('$error')),
+        AsyncError(:final error) => FailureView(
+          error: error,
+          onRetry: () => ref.invalidate(meterDetailProvider(meterId)),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );
@@ -104,6 +110,7 @@ class _MeterBody extends ConsumerWidget {
 
   Future<void> _sendNow(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final container = ProviderScope.containerOf(context, listen: false);
     try {
       await container.read(readingOutboxProvider).send(meter.id);
@@ -111,7 +118,9 @@ class _MeterBody extends ConsumerWidget {
         ..invalidate(meterDetailProvider(meter.id))
         ..invalidate(roundProvider);
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(toFailure(error).summary(l10n))),
+      );
     }
   }
 

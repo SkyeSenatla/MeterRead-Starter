@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meterread/app/failure_text.dart';
+import 'package:meterread/core/network/failure.dart';
 import 'package:meterread/features/round/presentation/round_providers.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
@@ -27,6 +29,7 @@ class _ReadingFormState extends ConsumerState<ReadingForm> {
 
   Future<void> _save() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     // The form goes once the reading is in the outbox: keep the container.
     final container = ProviderScope.containerOf(context, listen: false);
     final value = int.parse(_reading.text);
@@ -39,7 +42,9 @@ class _ReadingFormState extends ConsumerState<ReadingForm> {
         ..invalidate(meterDetailProvider(widget.meterId))
         ..invalidate(roundProvider);
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(toFailure(error).summary(l10n))),
+      );
     }
   }
 

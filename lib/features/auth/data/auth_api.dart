@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:meterread/core/network/failure.dart';
 import 'package:meterread/features/auth/domain/reader.dart';
 
 /// What sign-in and refresh send back.
@@ -17,14 +18,15 @@ final class AuthApi {
 
   final Dio _dio;
 
-  /// POST /auth/sign-in.
-  Future<TokenPair> signIn(String email, String password) async {
+  /// POST /auth/sign-in. Throws a [Failure]: a wrong password is
+  /// [SessionEnded] (the API's 401).
+  Future<TokenPair> signIn(String email, String password) => guarded(() async {
     final response = await _dio.post<Map<String, Object?>>(
       '/auth/sign-in',
       data: {'email': email, 'password': password},
     );
     return _pair(response.data!);
-  }
+  });
 
   /// POST /auth/refresh. Every refresh token works once: the answer has a
   /// new one, which replaces it.
