@@ -10,9 +10,9 @@ Duration? retryPolicy(int retryCount, Object error) =>
     retryCount < 3 ? Duration(milliseconds: 200 * (1 << retryCount)) : null;
 ```
 
-What breaks:
+What breaks: Users with permanent errors, such as invalid credentials or validation failures, experience unnecessary retries and delays.
 
-The fix:
+The fix: Users see raw technical error messages that are confusing and may expose sensitive implementation details.
 
 ## 2
 
@@ -65,9 +65,9 @@ class SessionInterceptor extends Interceptor {
 }
 ```
 
-What breaks:
+What breaks: Users making multiple simultaneous requests may trigger competing token refreshes, and requests may hang because the interceptor does not complete the handler.
 
-The fix:
+The fix: Use a single shared refresh operation, prevent infinite refresh loops and ensure every request is resolved, rejected or forwarded through the handler.
 
 ## 6
 
@@ -80,9 +80,9 @@ try {
 }
 ```
 
-What breaks:
+What breaks: Users experiencing temporary network or server failures are unnecessarily signed out and lose their locally stored data.
 
-The fix:
+The fix: Only sign out when the refresh token is definitively invalid or revoked; preserve the session and local data during temporary failures.
 
 ## 7
 
@@ -94,9 +94,9 @@ Future<void> send(PendingReading pending) => dio.post<void>(
 );
 ```
 
-What breaks:
+What breaks: Users may submit duplicate meter readings when a request is retried because a new idempotency key is generated every time.
 
-The fix:
+The fix: Generate and persist the idempotency key when the pending reading is created, then reuse it for every retry.
 
 ## 8
 
@@ -104,6 +104,6 @@ The fix:
 Text(left == 1 ? '1 meter left' : '$left meters left'),
 ```
 
-What breaks:
+What breaks: Users speaking other languages receive hardcoded English text that does not respect their language's pluralisation rules.
 
-The fix:
+The fix: Use Flutter localisation with ICU plural messages to handle translated singular and plural forms correctly.
