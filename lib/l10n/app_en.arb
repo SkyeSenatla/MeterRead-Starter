@@ -62,5 +62,63 @@
     "placeholders": {"reading": {"type": "String"}}
   },
   "discard": "Discard",
-  "@discard": {"description": "Throws away a reading that wasn't sent."}
+  "@discard": {"description": "Throws away a reading that wasn't sent."},
+  "failureNoSignal": "No signal. Check your connection and try again.",
+  "@failureNoSignal": {"description": "Shown when the phone got no answer at all from the server."},
+  "failureNotFound": "We couldn't find that. It may have been moved or removed.",
+  "@failureNotFound": {"description": "Shown when the server says the thing doesn't exist."},
+  "failureServer": "The server had a problem. It isn't your fault. Try again in a moment.",
+  "@failureServer": {"description": "Shown when the server crashed."},
+  "failureReference": "Reference: {reference}",
+  "@failureReference": {
+    "description": "The number support asks for, shown when the server is at fault.",
+    "placeholders": {"reference": {"type": "String"}}
+  },
+  "failureInput": "That wasn't accepted. Check it and try again.",
+  "@failureInput": {"description": "Shown when the server refused what was sent and gave no reason."},
+  "failureSignedOut": "You were signed out. Sign in again.",
+  "@failureSignedOut": {"description": "Shown when the session has ended."},
+  "failureUnexpected": "Something went wrong. Try again.",
+  "@failureUnexpected": {"description": "Shown for any failure the app doesn't know."},
+  "metersLeft": "{count, plural, =0{No meters left} =1{1 meter left} other{{count} meters left}}",
+  "@metersLeft": {
+    "description": "How many meters on the round are still due.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "meterStatusLine": "{meterNumber} · {status}",
+  "@meterStatusLine": {
+    "description": "A meter's number and its status in words, on the round list.",
+    "placeholders": {"meterNumber": {"type": "String"}, "status": {"type": "String"}}
+  },
+  "updateFailed": "Couldn't update the list. Last updated {when}.",
+  "@updateFailed": {
+    "description": "Shown above the saved round when refreshing it failed.",
+    "placeholders": {"when": {"type": "String"}}
+  },
+  "lastUpdated": "Last updated {when}",
+  "@lastUpdated": {
+    "description": "When the saved round was last refreshed from the server.",
+    "placeholders": {"when": {"type": "String"}}
+  },
+  "updating": "Updating…",
+  "@updating": {"description": "Shown while the saved round is being refreshed."},
+  "readingLabel": "Reading (kWh)",
+  "@readingLabel": {"description": "Label of the field where the reader types the meter's reading."},
+  "readingRequired": "Enter the reading.",
+  "@readingRequired": {"description": "The reading field was empty."},
+  "readingDigitsOnly": "Use digits only, like 48 590.",
+  "@readingDigitsOnly": {"description": "The reading field had something other than digits and spaces."},
+  "readingTooLong": "That's too many digits.",
+  "@readingTooLong": {"description": "The reading is longer than any meter shows."},
+  "sendNow": "Send now",
+  "@sendNow": {"description": "Tries again to send a reading that is waiting on the phone."},
+  "pendingNoSignal": "Waiting for signal.",
+  "@pendingNoSignal": {"description": "A reading couldn't be sent because there was no signal."},
+  "pendingServer": "The server had a problem. Try sending again.",
+  "@pendingServer": {"description": "A reading couldn't be sent because the server crashed."},
+  "pendingReference": "Reference: {reference}",
+  "@pendingReference": {
+    "description": "The number support asks for, next to a reading that couldn't be sent.",
+    "placeholders": {"reference": {"type": "String"}}
+  }
 }

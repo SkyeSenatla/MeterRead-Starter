@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:meterread/app/network/dio_provider.dart';
+import 'package:meterread/core/error/failure.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,23 +13,45 @@ final class RoundRepository {
 
   final Dio _dio;
 
-  /// GET /round/today: today's round.
-  Future<Round> fetchRound() async {
-    final response = await _dio.get<Map<String, Object?>>('/round/today');
-    final json = response.data!;
-    return Round(
-      name: json['roundName']! as String,
-      totalMeters: json['totalMeters']! as int,
-      metersLeft: json['metersLeft']! as int,
-      meters: [
+  /// GET /round/today: today's round, every page of it (10 meters a page).
+  /// Throws a [Failure].
+  Future<Round> fetchRound() => _guard(() async {
+    String? name;
+    var totalMeters = 0;
+    var metersLeft = 0;
+    final meters = <MeterSummary>[];
+    String? pageToken;
+    // The last page leaves nextPageToken out. The cap is only a seat belt
+    // against a server that never does.
+    for (var page = 0; page < _maxPages; page++) {
+      final response = await _dio.get<Map<String, Object?>>(
+        '/round/today',
+        queryParameters: {'pageToken': ?pageToken},
+      );
+      final json = response.data!;
+      name ??= json['roundName']! as String;
+      totalMeters = json['totalMeters']! as int;
+      metersLeft = json['metersLeft']! as int;
+      meters.addAll([
         for (final meter in json['meters']! as List<Object?>)
           MeterSummary.fromJson(meter! as Map<String, Object?>),
-      ],
+      ]);
+      pageToken = json['nextPageToken'] as String?;
+      if (pageToken == null || pageToken.isEmpty) break;
+    }
+    return Round(
+      name: name!,
+      totalMeters: totalMeters,
+      metersLeft: metersLeft,
+      meters: meters,
     );
-  }
+  });
 
-  /// GET /meters/{id} and GET /meters/{id}/readings, together.
-  Future<Meter> fetchMeter(String id) async {
+  static const _maxPages = 100;
+
+  /// GET /meters/{id} and GET /meters/{id}/readings, together. Throws a
+  /// [Failure].
+  Future<Meter> fetchMeter(String id) => _guard(() async {
     final (detail, history) = await (
       _dio.get<Map<String, Object?>>('/meters/$id'),
       _dio.get<Map<String, Object?>>('/meters/$id/readings'),
@@ -55,21 +78,33 @@ final class RoundRepository {
             (value: value, readOn: DateTime.parse(readOn)),
       ],
     );
-  }
+  });
 
   /// POST /meters/{id}/readings, with the Idempotency-Key the API asks for.
+  /// Never retried here: the same key makes sending again safe, but only
+  /// the reader decides to. Throws a [Failure].
   Future<AcceptedReading> submitReading(
     String meterId, {
     required int value,
     required bool meterReplaced,
     required String idempotencyKey,
-  }) async {
+  }) => _guard(() async {
     final response = await _dio.post<Map<String, Object?>>(
       '/meters/$meterId/readings',
       data: {'value': value, 'meterReplaced': meterReplaced},
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     return AcceptedReading.fromJson(response.data!);
+  });
+
+  /// Runs [call], and turns anything Dio or `.wait` throws into a [Failure].
+  static Future<T> _guard<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } on Object catch (error) {
+      // The data layer's edge: whatever went wrong leaves as a Failure.
+      throw failureFrom(error);
+    }
   }
 }
 

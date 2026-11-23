@@ -21,6 +21,14 @@ final class AppDatabase extends _$AppDatabase {
   /// Bump with every change to a table, with a migration for it.
   @override
   int get schemaVersion => 1;
+
+  /// Deletes every row in every table: the saved round, the unsent
+  /// readings, everything. Signing out calls it.
+  Future<void> wipe() => transaction(() async {
+    for (final table in allTables) {
+      await delete(table).go();
+    }
+  });
 }
 
 /// The one database, opened once. Keep this name: the test harness

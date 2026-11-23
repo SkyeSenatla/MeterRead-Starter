@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meterread/core/error/failure.dart';
+import 'package:meterread/core/error/failure_view.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
 import 'package:meterread/features/auth/presentation/auth_controller.dart';
 import 'package:meterread/l10n/app_localizations.dart';
@@ -17,7 +19,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
-  Object? _error;
+  Failure? _error;
 
   @override
   void dispose() {
@@ -36,7 +38,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           .read(authControllerProvider.notifier)
           .signIn(_email.text, _password.text);
     } on Object catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted) setState(() => _error = failureFrom(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -72,7 +74,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                '$error',
+                error.words(l10n),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),

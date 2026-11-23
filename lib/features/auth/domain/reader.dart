@@ -3,6 +3,10 @@ final class Reader {
   /// Creates the reader.
   const new({required this.name, required this.email});
 
+  /// Who is signed in when the phone has no signal at launch, so the API
+  /// can't say: the saved session is still good, just not yet confirmed.
+  static const unknown = Reader(name: '', email: '');
+
   /// Their name, as the API sends it: "Thandeka Mokoena".
   final String name;
 

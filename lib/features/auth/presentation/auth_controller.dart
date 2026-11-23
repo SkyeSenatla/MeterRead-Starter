@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:meterread/app/database/app_database.dart';
 import 'package:meterread/app/network/dio_provider.dart';
+import 'package:meterread/core/error/failure.dart';
 import 'package:meterread/core/network/access_token.dart';
+import 'package:meterread/core/network/session_interceptor.dart';
 import 'package:meterread/core/network/token_store.dart';
 import 'package:meterread/features/auth/data/auth_api.dart';
 import 'package:meterread/features/auth/domain/reader.dart';
@@ -19,7 +23,10 @@ class AuthController extends _$AuthController {
     return const Restoring();
   }
 
-  // On launch: one refresh with the stored token, if there is one.
+  // On launch: one refresh with the stored token, if there is one. Only the
+  // API turning it down signs the reader out: with no signal (or a server
+  // problem) the saved session is still good, so the reader goes on to the
+  // round saved on the phone.
   Future<void> _restore() async {
     final store = ref.read(tokenStoreProvider);
     final stored = await store.read();
@@ -31,22 +38,44 @@ class AuthController extends _$AuthController {
       final pair = await ref.read(authApiProvider).refresh(stored);
       await _keep(pair);
       state = SignedIn(pair.reader);
+    } on DioException catch (error) {
+      if (SessionInterceptor.refused(error)) {
+        await sessionEnded();
+      } else {
+        state = const SignedIn(Reader.unknown);
+      }
     } on Object {
-      await store.delete();
-      state = const SignedOut();
+      await sessionEnded();
     }
   }
 
-  /// Signs in. Throws whatever the API call throws.
+  /// Signs in. Throws a [Failure]: [InvalidInput] when the email and
+  /// password don't match.
   Future<void> signIn(String email, String password) async {
-    final pair = await ref
-        .read(authApiProvider)
-        .signIn(email.trim().toLowerCase(), password);
+    final TokenPair pair;
+    try {
+      pair = await ref
+          .read(authApiProvider)
+          .signIn(email.trim().toLowerCase(), password);
+    } on DioException catch (error) {
+      final failure = failureFrom(error);
+      // Here a 401 is a wrong password, not a session that ended.
+      throw switch (failure) {
+        SessionEnded() => InvalidInput(
+          message: switch (error.response?.data) {
+            {'detail': final String detail} => detail,
+            _ => null,
+          },
+        ),
+        _ => failure,
+      };
+    }
     await _keep(pair);
     state = SignedIn(pair.reader);
   }
 
-  /// Signs out: tells the API, then forgets the tokens.
+  /// Signs out: tells the API, then forgets everything on the phone: the
+  /// tokens and every row in the database.
   Future<void> signOut() async {
     final store = ref.read(tokenStoreProvider);
     final stored = await store.read();
@@ -57,15 +86,17 @@ class AuthController extends _$AuthController {
         // Signed out on the phone even if the API didn't hear.
       }
     }
-    await store.delete();
-    ref.read(accessTokenProvider.notifier).clear();
-    state = const SignedOut();
+    await _forgetEverything();
   }
 
-  /// The API refused a refresh: sign in again.
-  Future<void> sessionEnded() async {
-    await ref.read(tokenStoreProvider).delete();
+  /// The API refused a refresh: the session is over, sign in again. Forgets
+  /// everything on the phone, as signing out does.
+  Future<void> sessionEnded() => _forgetEverything();
+
+  Future<void> _forgetEverything() async {
     ref.read(accessTokenProvider.notifier).clear();
+    await ref.read(tokenStoreProvider).delete();
+    await ref.read(appDatabaseProvider).wipe();
     state = const SignedOut();
   }
 
