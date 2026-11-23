@@ -47,9 +47,9 @@ await prefs.setString('refresh_token', pair.refreshToken);
 await prefs.setString('access_token', pair.accessToken);
 ```
 
-What breaks:
+What breaks: Credentials are set in preferences which basically leak session information 
 
-The fix:
+The fix: Access_token should be kept in memory and refresh_token in storage.  
 
 ## 5
 
@@ -80,9 +80,9 @@ try {
 }
 ```
 
-What breaks:
+What breaks: Lose of signal wipes the cache 
 
-The fix:
+The fix: retry should be set that the tokens are stored  for when retrying. 
 
 ## 7
 
