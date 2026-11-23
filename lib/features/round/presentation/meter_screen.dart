@@ -2,27 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meterread/app/format.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
+import 'package:meterread/core/widgets/failure_message.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:meterread/features/round/presentation/reading_form.dart';
 import 'package:meterread/features/round/presentation/round_providers.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
-/// One meter: what the server knows about it, and the reading form while
-/// it's due.
+/// One meter and its reading form.
 class MeterScreen extends ConsumerWidget {
   /// Creates the screen for [meterId].
   const new({required this.meterId, super.key});
 
-  /// `M-1001`.
+  /// The meter's ID.
   final String meterId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final provider = meterDetailProvider(meterId);
     return Scaffold(
       appBar: AppBar(title: Text(meterId), actions: const [TestToolsButton()]),
-      body: switch (ref.watch(meterDetailProvider(meterId))) {
+      body: switch (ref.watch(provider)) {
         AsyncData(:final value) => _MeterBody(meter: value),
-        AsyncError(:final error) => Center(child: Text('$error')),
+        AsyncError(:final error) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: FailureMessage(
+              error: error,
+              notFoundText: l10n.meterNotFound,
+              onRetry: () => ref.invalidate(provider),
+            ),
+          ),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );
@@ -39,6 +50,7 @@ class _MeterBody extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final pending = ref.watch(pendingReadingProvider(meter.id)).value;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -75,8 +87,9 @@ class _MeterBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
+                    tooltip: l10n.sendNow,
                     icon: const Icon(Icons.send),
-                    onPressed: () => _sendNow(context, ref),
+                    onPressed: () => _sendNow(context),
                   ),
                   TextButton(
                     onPressed: () =>
@@ -86,9 +99,14 @@ class _MeterBody extends ConsumerWidget {
                 ],
               ),
             ),
-          )
-        else if (meter.status == MeterStatus.due)
-          ReadingForm(meterId: meter.id),
+          ),
+        if (meter.status == MeterStatus.due)
+          Visibility(
+            key: ValueKey('reading-form-${meter.id}'),
+            visible: pending == null,
+            maintainState: true,
+            child: ReadingForm(meterId: meter.id),
+          ),
         const SizedBox(height: 16),
         Text(l10n.earlierReadings, style: text.titleMedium),
         for (final past in meter.history)
@@ -102,16 +120,29 @@ class _MeterBody extends ConsumerWidget {
     );
   }
 
-  Future<void> _sendNow(BuildContext context, WidgetRef ref) async {
+  Future<void> _sendNow(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     final container = ProviderScope.containerOf(context, listen: false);
+
     try {
-      await container.read(readingOutboxProvider).send(meter.id);
-      container
-        ..invalidate(meterDetailProvider(meter.id))
-        ..invalidate(roundProvider);
+      final accepted = await container
+          .read(readingOutboxProvider)
+          .send(meter.id);
+      if (accepted != null) {
+        container
+          ..invalidate(meterDetailProvider(meter.id))
+          ..invalidate(roundProvider);
+      }
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: FailureMessage(
+            error: error,
+            onRetry: () => _sendNow(context),
+          ),
+        ),
+      );
     }
   }
 

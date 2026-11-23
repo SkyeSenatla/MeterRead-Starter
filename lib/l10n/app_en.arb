@@ -27,17 +27,26 @@
   "meterAndAccount": "Meter {meterNumber} · Account {accountNumber}",
   "@meterAndAccount": {
     "description": "The numbers that identify a meter and the account it bills.",
-    "placeholders": {"meterNumber": {"type": "String"}, "accountNumber": {"type": "String"}}
+    "placeholders": {
+      "meterNumber": {"type": "String"},
+      "accountNumber": {"type": "String"}
+    }
   },
   "lastReading": "Last reading {reading} kWh on {date}",
   "@lastReading": {
     "description": "Last month's reading and the day it was read.",
-    "placeholders": {"reading": {"type": "String"}, "date": {"type": "String"}}
+    "placeholders": {
+      "reading": {"type": "String"},
+      "date": {"type": "String"}
+    }
   },
   "thisCycle": "This month: {reading} kWh, {used} kWh used",
   "@thisCycle": {
     "description": "This month's accepted reading and the consumption the server worked out.",
-    "placeholders": {"reading": {"type": "String"}, "used": {"type": "String"}}
+    "placeholders": {
+      "reading": {"type": "String"},
+      "used": {"type": "String"}
+    }
   },
   "readThisCycle": "Read this month.",
   "@readThisCycle": {"description": "The meter was read this month, on another phone."},
@@ -50,7 +59,10 @@
   "pastReading": "{reading} kWh on {date}",
   "@pastReading": {
     "description": "One earlier month's reading.",
-    "placeholders": {"reading": {"type": "String"}, "date": {"type": "String"}}
+    "placeholders": {
+      "reading": {"type": "String"},
+      "date": {"type": "String"}
+    }
   },
   "meterReplaced": "Meter replaced",
   "@meterReplaced": {"description": "Tick box: the meter was replaced, so a lower reading is right."},
@@ -62,5 +74,24 @@
     "placeholders": {"reading": {"type": "String"}}
   },
   "discard": "Discard",
-  "@discard": {"description": "Throws away a reading that wasn't sent."}
+  "@discard": {"description": "Throws away a reading that wasn't sent."},
+  "noSignal": "No signal. Check your connection and try again.",
+  "validationFailed": "Check the details and try again.",
+  "signedOut": "Your session has ended. Please sign in again.",
+  "notFound": "We couldn't find that.",
+  "meterNotFound": "Meter not found.",
+  "serverFault": "Something went wrong on our side.",
+  "unexpectedFailure": "We couldn't complete that request. Try again.",
+  "signInMismatch": "That email and password don't match.",
+  "failureReference": "Reference {reference}",
+  "@failureReference": {
+    "description": "The support reference supplied by the API.",
+    "placeholders": {"reference": {"type": "String"}}
+  },
+  "sendNow": "Send now",
+  "readingLabel": "Reading in kWh",
+  "readingHint": "e.g. 48 590",
+  "readingEmpty": "Enter the reading.",
+  "readingInvalid": "Use digits only, like 48 590.",
+  "readingRange": "Enter the reading in whole kWh, from 0 to 9 999 999."
 }

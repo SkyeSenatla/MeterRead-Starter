@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
+import 'package:meterread/core/widgets/failure_message.dart';
 import 'package:meterread/features/auth/presentation/auth_controller.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
-/// Sign in with an email and password. The router moves on once signed in.
 class SignInScreen extends ConsumerStatefulWidget {
   /// Creates the screen.
   const new({super.key});
@@ -27,6 +27,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   Future<void> _signIn() async {
+    if (_busy) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -71,9 +72,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           if (_error case final error?)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                '$error',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              child: FailureMessage(
+                error: error,
+                signingIn: true,
+                onRetry: _busy ? null : _signIn,
               ),
             ),
           FilledButton(

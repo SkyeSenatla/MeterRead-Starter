@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meterread/app/router/routes.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
+import 'package:meterread/core/widgets/failure_message.dart';
 import 'package:meterread/features/auth/presentation/auth_controller.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:meterread/features/round/presentation/round_providers.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
-/// Today's round: every meter the reader visits, in walking order.
 class RoundScreen extends ConsumerWidget {
   /// Creates the screen.
   const new({super.key});
@@ -30,7 +30,15 @@ class RoundScreen extends ConsumerWidget {
       ),
       body: switch (ref.watch(roundProvider)) {
         AsyncData(:final value) => _RoundList(round: value),
-        AsyncError(:final error) => Center(child: Text('$error')),
+        AsyncError(:final error) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: FailureMessage(
+              error: error,
+              onRetry: () => ref.invalidate(roundProvider),
+            ),
+          ),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );

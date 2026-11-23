@@ -1,12 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:meterread/core/failures/failure.dart';
 import 'package:meterread/core/network/access_token.dart';
+import 'package:meterread/core/network/failure_from.dart';
 import 'package:meterread/core/network/token_store.dart';
 import 'package:meterread/features/auth/data/auth_api.dart';
 
-/// Puts the access token on every request. On a 401 it refreshes the
-/// tokens and sends the request again.
 class SessionInterceptor extends Interceptor {
-  /// Creates the interceptor. retryWith is a Dio without this interceptor.
   new({
     required this._api,
     required this._store,
@@ -53,9 +52,17 @@ class SessionInterceptor extends Interceptor {
       final options = err.requestOptions
         ..headers['Authorization'] = 'Bearer ${pair.accessToken}';
       handler.resolve(await _retryWith.fetch<Object?>(options));
-    } on DioException catch (refreshError) {
-      _onSessionEnded();
-      handler.next(refreshError);
+    } on Object catch (error, stack) {
+      final failure = failureFrom(error);
+      if (failure is SignedOutFailure) _onSessionEnded();
+
+      handler.next(
+        DioException(
+          requestOptions: err.requestOptions,
+          error: failure,
+          stackTrace: stack,
+        ),
+      );
     }
   }
 }

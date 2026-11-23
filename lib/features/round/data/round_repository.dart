@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:meterread/app/network/dio_provider.dart';
+import 'package:meterread/core/network/failure_from.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -13,7 +14,7 @@ final class RoundRepository {
   final Dio _dio;
 
   /// GET /round/today: today's round.
-  Future<Round> fetchRound() async {
+  Future<Round> fetchRound() => withFailures(() async {
     final response = await _dio.get<Map<String, Object?>>('/round/today');
     final json = response.data!;
     return Round(
@@ -25,10 +26,10 @@ final class RoundRepository {
           MeterSummary.fromJson(meter! as Map<String, Object?>),
       ],
     );
-  }
+  });
 
   /// GET /meters/{id} and GET /meters/{id}/readings, together.
-  Future<Meter> fetchMeter(String id) async {
+  Future<Meter> fetchMeter(String id) => withFailures(() async {
     final (detail, history) = await (
       _dio.get<Map<String, Object?>>('/meters/$id'),
       _dio.get<Map<String, Object?>>('/meters/$id/readings'),
@@ -55,22 +56,21 @@ final class RoundRepository {
             (value: value, readOn: DateTime.parse(readOn)),
       ],
     );
-  }
+  });
 
-  /// POST /meters/{id}/readings, with the Idempotency-Key the API asks for.
   Future<AcceptedReading> submitReading(
     String meterId, {
     required int value,
     required bool meterReplaced,
     required String idempotencyKey,
-  }) async {
+  }) => withFailures(() async {
     final response = await _dio.post<Map<String, Object?>>(
       '/meters/$meterId/readings',
       data: {'value': value, 'meterReplaced': meterReplaced},
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     return AcceptedReading.fromJson(response.data!);
-  }
+  });
 }
 
 /// The repository.

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meterread/core/failures/failure.dart';
+import 'package:meterread/core/widgets/failure_message.dart';
 import 'package:meterread/features/round/presentation/round_providers.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
 /// The reading form: the number on the meter, in whole kWh.
 class ReadingForm extends ConsumerStatefulWidget {
   /// Creates the form for [meterId].
-  const new({required this.meterId, super.key});
+  const ReadingForm({required this.meterId, super.key});
 
   /// The meter being read.
   final String meterId;
@@ -18,6 +20,9 @@ class ReadingForm extends ConsumerStatefulWidget {
 class _ReadingFormState extends ConsumerState<ReadingForm> {
   final _reading = TextEditingController();
   bool _meterReplaced = false;
+  bool _busy = false;
+  String? _fieldError;
+  Object? _error;
 
   @override
   void dispose() {
@@ -26,20 +31,55 @@ class _ReadingFormState extends ConsumerState<ReadingForm> {
   }
 
   Future<void> _save() async {
-    final messenger = ScaffoldMessenger.of(context);
-    // The form goes once the reading is in the outbox: keep the container.
+    if (_busy) return;
+
+    final l10n = AppLocalizations.of(context);
+    final text = _reading.text;
+    final digits = text.replaceAll(' ', '');
+    final value = int.tryParse(digits);
+    String? message;
+
+    if (text.trim().isEmpty) {
+      message = l10n.readingEmpty;
+    } else if (!RegExp(r'^[0-9 ]+$').hasMatch(text)) {
+      message = l10n.readingInvalid;
+    } else if (value == null || value > 9999999) {
+      message = l10n.readingRange;
+    }
+
+    setState(() {
+      _fieldError = message;
+      _error = null;
+    });
+    if (message != null || value == null) return;
+
+    final meterId = widget.meterId;
     final container = ProviderScope.containerOf(context, listen: false);
-    final value = int.parse(_reading.text);
-    _reading.clear();
+    final outbox = ref.read(readingOutboxProvider);
+    setState(() => _busy = true);
+
     try {
-      await ref
-          .read(readingOutboxProvider)
-          .capture(widget.meterId, value: value, meterReplaced: _meterReplaced);
-      container
-        ..invalidate(meterDetailProvider(widget.meterId))
-        ..invalidate(roundProvider);
+      final accepted = await outbox.capture(
+        meterId,
+        value: value,
+        meterReplaced: _meterReplaced,
+      );
+      if (accepted != null) {
+        container
+          ..invalidate(meterDetailProvider(meterId))
+          ..invalidate(roundProvider);
+      }
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      if (!mounted) return;
+      final fieldMessage = error is ValidationFailure
+          ? error.errors['value']?.firstOrNull
+          : null;
+      setState(() {
+        _fieldError = fieldMessage;
+        _error = fieldMessage == null ? error : null;
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -51,16 +91,32 @@ class _ReadingFormState extends ConsumerState<ReadingForm> {
       children: [
         TextField(
           controller: _reading,
+          readOnly: _busy,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: 'e.g. 48 590'),
+          decoration: InputDecoration(
+            labelText: l10n.readingLabel,
+            hintText: l10n.readingHint,
+            errorText: _fieldError,
+            errorMaxLines: 4,
+          ),
         ),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(l10n.meterReplaced),
           value: _meterReplaced,
-          onChanged: (value) => setState(() => _meterReplaced = value ?? false),
+          onChanged: _busy
+              ? null
+              : (value) => setState(() => _meterReplaced = value ?? false),
         ),
-        FilledButton(onPressed: _save, child: Text(l10n.saveReading)),
+        if (_error case final error?)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: FailureMessage(error: error, onRetry: _busy ? null : _save),
+          ),
+        FilledButton(
+          onPressed: _busy ? null : _save,
+          child: Text(l10n.saveReading),
+        ),
       ],
     );
   }
