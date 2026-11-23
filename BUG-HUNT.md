@@ -10,9 +10,9 @@ Duration? retryPolicy(int retryCount, Object error) =>
     retryCount < 3 ? Duration(milliseconds: 200 * (1 << retryCount)) : null;
 ```
 
-What breaks:
+What breaks: the error is retried a lot and delays feedback
 
-The fix:
+The fix: retry should only be used on failures of response. 
 
 ## 2
 
@@ -20,9 +20,9 @@ The fix:
 AsyncError(:final error) => Center(child: Text('$error')),
 ```
 
-What breaks:
+What breaks: There is no proper explanation of error
 
-The fix:
+The fix: Using reference helps provide a clearer message. 
 
 ## 3
 
