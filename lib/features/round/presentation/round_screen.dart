@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meterread/app/failure_view.dart';
 import 'package:meterread/app/router/routes.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
 import 'package:meterread/features/auth/presentation/auth_controller.dart';
@@ -30,7 +31,10 @@ class RoundScreen extends ConsumerWidget {
       ),
       body: switch (ref.watch(roundProvider)) {
         AsyncData(:final value) => _RoundList(round: value),
-        AsyncError(:final error) => Center(child: Text('$error')),
+        AsyncError(:final error) => FailureView(
+          error: error,
+          onRetry: () => ref.invalidate(roundProvider),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );

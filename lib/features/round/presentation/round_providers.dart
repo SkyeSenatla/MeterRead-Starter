@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:meterread/app/database/app_database.dart';
+import 'package:meterread/core/network/failure.dart';
 import 'package:meterread/features/round/data/round_repository.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -45,8 +45,8 @@ final class ReadingOutbox {
   }
 
   /// Sends the reading waiting for [meterId]. Null when it couldn't be
-  /// sent (no signal): it stays in the outbox for "Send now". Throws when
-  /// the server refuses it.
+  /// sent (no signal): it stays in the outbox for "Send now". Throws a
+  /// [Failure] when the server refuses it.
   Future<AcceptedReading?> send(String meterId) async {
     final outbox = _database.outboxDao;
     final pending = await outbox.readFor(meterId);
@@ -63,11 +63,10 @@ final class ReadingOutbox {
       );
       await outbox.remove(meterId);
       return accepted;
-    } on DioException catch (error) {
-      if (error.response == null) {
-        await outbox.setError(meterId, 'No answer from the server.');
-        return null;
-      }
+    } on NoSignal {
+      await outbox.setError(meterId, 'No answer from the server.');
+      return null;
+    } on Failure {
       await outbox.remove(meterId);
       rethrow;
     }

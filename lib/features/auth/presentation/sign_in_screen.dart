@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meterread/app/failure_text.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
+import 'package:meterread/core/network/failure.dart';
 import 'package:meterread/features/auth/presentation/auth_controller.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
@@ -17,7 +19,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
-  Object? _error;
+  Failure? _failure;
 
   @override
   void dispose() {
@@ -29,14 +31,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   Future<void> _signIn() async {
     setState(() {
       _busy = true;
-      _error = null;
+      _failure = null;
     });
     try {
       await ref
           .read(authControllerProvider.notifier)
           .signIn(_email.text, _password.text);
     } on Object catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted) setState(() => _failure = toFailure(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -68,12 +70,28 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             onSubmitted: (_) => _signIn(),
           ),
           const SizedBox(height: 16),
-          if (_error case final error?)
+          if (_failure case final failure?)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                '$error',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    failure is SessionEnded
+                        ? l10n.failureSignIn
+                        : failure.message(l10n),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  if (failure.reference case final reference?)
+                    Text(l10n.failureReference(reference)),
+                  if (failure is NoSignal || failure is ServerFault)
+                    TextButton(
+                      onPressed: _busy ? null : _signIn,
+                      child: Text(l10n.tryAgain),
+                    ),
+                ],
               ),
             ),
           FilledButton(

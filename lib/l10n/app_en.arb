@@ -16,6 +16,21 @@
   "@signOut": {"description": "Signs the reader out."},
   "tryAgain": "Try again",
   "@tryAgain": {"description": "Asks the server again after a failure."},
+  "failureNoSignal": "No signal. Check your connection and try again.",
+  "@failureNoSignal": {"description": "The phone got no answer from the server: no signal or a timeout."},
+  "failureServer": "Something went wrong on our side.",
+  "@failureServer": {"description": "The server failed. The reference line follows it."},
+  "failureReference": "Reference {reference}",
+  "@failureReference": {
+    "description": "The server's reference for a failure, which support asks for.",
+    "placeholders": {"reference": {"type": "String"}}
+  },
+  "failureMeterNotFound": "Meter not found.",
+  "@failureMeterNotFound": {"description": "The meter doesn't exist or isn't on this reader's round."},
+  "failureSessionEnded": "Your session has ended. Sign in again.",
+  "@failureSessionEnded": {"description": "The server no longer accepts the reader's session."},
+  "failureSignIn": "That email and password don't match.",
+  "@failureSignIn": {"description": "Sign-in refused: wrong email or password."},
   "statusDue": "Due",
   "@statusDue": {"description": "A meter that hasn't been read this month."},
   "statusRead": "Read",
@@ -24,7 +39,7 @@
   "@statusQuery": {"description": "A meter read twice this month, which the billing office will query."},
   "statusUnknown": "Status not recognised",
   "@statusUnknown": {"description": "A status this version of the app doesn't know."},
-  "meterAndAccount": "Meter {meterNumber} · Account {accountNumber}",
+  "meterAndAccount": "Meter {meterNumber} \u00b7 Account {accountNumber}",
   "@meterAndAccount": {
     "description": "The numbers that identify a meter and the account it bills.",
     "placeholders": {"meterNumber": {"type": "String"}, "accountNumber": {"type": "String"}}
