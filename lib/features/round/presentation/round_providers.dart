@@ -1,5 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:meterread/app/database/app_database.dart';
+import 'package:meterread/core/cache/snapshot.dart';
+import 'package:meterread/core/failure/failure.dart';
 import 'package:meterread/features/round/data/round_repository.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -7,30 +8,36 @@ import 'package:uuid/uuid.dart';
 
 part 'round_providers.g.dart';
 
-/// Today's round, from the server.
+/// Cached round emits before the background network request finishes.
 @riverpod
-Future<Round> round(Ref ref) => ref.watch(roundRepositoryProvider).fetchRound();
+Stream<Snapshot<Round>?> cachedRound(Ref ref) =>
+    ref.watch(appDatabaseProvider).roundDao.watch();
 
-/// One meter, from the server.
+/// Network refresh updates the cache; its failure leaves the cache intact.
+@riverpod
+Future<Round> round(Ref ref) async {
+  final result = await ref.watch(roundRepositoryProvider).fetchRound();
+  await ref
+      .read(appDatabaseProvider)
+      .roundDao
+      .save(result, fetchedAt: DateTime.now().toUtc());
+  return result;
+}
+
 @riverpod
 Future<Meter> meterDetail(Ref ref, String meterId) =>
     ref.watch(roundRepositoryProvider).fetchMeter(meterId);
 
-/// The reading waiting to be sent for one meter, if any.
 @riverpod
 Stream<WaitingReading?> pendingReading(Ref ref, String meterId) =>
     ref.watch(appDatabaseProvider).outboxDao.watchFor(meterId);
 
-/// Readings go through the outbox: kept on the phone first, then sent, so
-/// a reading taken with no signal isn't lost.
 final class ReadingOutbox {
-  /// Creates the outbox.
   const new(this._database, this._repository);
-
   final AppDatabase _database;
   final RoundRepository _repository;
 
-  /// Keeps the reading on the phone, then tries to send it.
+  /// Capture a distinct reading once, including its persistent retry key.
   Future<AcceptedReading?> capture(
     String meterId, {
     required int value,
@@ -40,44 +47,45 @@ final class ReadingOutbox {
       meterId,
       value: value,
       meterReplaced: meterReplaced,
+      idempotencyKey: const Uuid().v4(),
     );
-    return await send(meterId);
+    return send(meterId);
   }
 
-  /// Sends the reading waiting for [meterId]. Null when it couldn't be
-  /// sent (no signal): it stays in the outbox for "Send now". Throws when
-  /// the server refuses it.
+  /// Retry the exact same reading and key until the server accepts it.
   Future<AcceptedReading?> send(String meterId) async {
     final outbox = _database.outboxDao;
     final pending = await outbox.readFor(meterId);
     if (pending == null) return null;
-    // A fresh key for every request, so the server never mixes two up.
-    final key = const Uuid().v4();
-    await outbox.setKey(meterId, key);
     try {
       final accepted = await _repository.submitReading(
         meterId,
         value: pending.value,
         meterReplaced: pending.meterReplaced,
-        idempotencyKey: key,
+        idempotencyKey: pending.idempotencyKey!,
       );
       await outbox.remove(meterId);
       return accepted;
-    } on DioException catch (error) {
-      if (error.response == null) {
-        await outbox.setError(meterId, 'No answer from the server.');
+    } on Object catch (error) {
+      final failure = failureFrom(error);
+      if (failure is FieldFailure) {
+        await outbox.remove(meterId);
+        throw failure;
+      }
+      if (failure is NoSignalFailure) {
+        await outbox.setError(meterId, 'noSignal');
         return null;
       }
-      await outbox.remove(meterId);
-      rethrow;
+      if (failure is ServerFailure) {
+        await outbox.setError(meterId, 'server:${failure.traceId ?? ''}');
+      }
+      throw failure;
     }
   }
 
-  /// Throws the waiting reading away.
   Future<void> discard(String meterId) => _database.outboxDao.remove(meterId);
 }
 
-/// The outbox.
 @riverpod
 ReadingOutbox readingOutbox(Ref ref) => ReadingOutbox(
   ref.watch(appDatabaseProvider),

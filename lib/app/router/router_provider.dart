@@ -31,7 +31,7 @@ GoRouter router(Ref ref) {
       ).toString();
 
       return switch (auth.value) {
-        Restoring() => atSplash ? null : away('/'),
+        Restoring() || RestoreFailed() => atSplash ? null : away('/'),
         SignedOut() => atSignIn ? null : away('/sign-in'),
         SignedIn() when atSplash || atSignIn =>
           from ?? const RoundRoute().location,

@@ -1,42 +1,31 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 part 'token_store.g.dart';
 
-/// Where the refresh token is kept between launches. Keep this interface
-/// and its three methods: the test harness gives the app its own store.
+/// Refresh tokens survive app restarts, never in ordinary preferences.
 abstract interface class TokenStore {
-  /// The stored refresh token, or null when nobody is signed in.
   Future<String?> read();
-
-  /// Keeps [refreshToken], replacing any earlier one.
   Future<void> write(String refreshToken);
-
-  /// Forgets the token.
   Future<void> delete();
 }
 
-/// Keeps the refresh token in the app's preferences.
-final class PrefsTokenStore implements TokenStore {
-  /// Creates the store.
-  new([SharedPreferencesAsync? prefs])
-    : _prefs = prefs ?? SharedPreferencesAsync();
+final class SecureTokenStore implements TokenStore {
+  const new([this._storage = const FlutterSecureStorage()]);
 
-  final SharedPreferencesAsync _prefs;
-
+  final FlutterSecureStorage _storage;
   static const _key = 'refresh_token';
 
   @override
-  Future<String?> read() => _prefs.getString(_key);
+  Future<String?> read() => _storage.read(key: _key);
 
   @override
   Future<void> write(String refreshToken) =>
-      _prefs.setString(_key, refreshToken);
+      _storage.write(key: _key, value: refreshToken);
 
   @override
-  Future<void> delete() => _prefs.remove(_key);
+  Future<void> delete() => _storage.delete(key: _key);
 }
 
-/// The app's token store. Keep this name: the test harness overrides it.
 @Riverpod(keepAlive: true)
-TokenStore tokenStore(Ref ref) => PrefsTokenStore();
+TokenStore tokenStore(Ref ref) => const SecureTokenStore();

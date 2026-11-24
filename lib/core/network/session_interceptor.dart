@@ -1,31 +1,31 @@
 import 'package:dio/dio.dart';
+import 'package:meterread/core/failure/failure.dart';
 import 'package:meterread/core/network/access_token.dart';
 import 'package:meterread/core/network/token_store.dart';
 import 'package:meterread/features/auth/data/auth_api.dart';
 
-/// Puts the access token on every request. On a 401 it refreshes the
-/// tokens and sends the request again.
-class SessionInterceptor extends Interceptor {
-  /// Creates the interceptor. retryWith is a Dio without this interceptor.
+/// The error queue serializes simultaneous 401s. Each failed request carries
+/// its original access token so later requests reuse the first refresh.
+class SessionInterceptor extends QueuedInterceptor {
   new({
-    required this._api,
-    required this._store,
-    required this._readAccess,
-    required this._writeAccess,
-    required this._retryWith,
-    required this._onSessionEnded,
+    required this.api,
+    required this.store,
+    required this.readAccess,
+    required this.writeAccess,
+    required this.retryWith,
+    required this.onSessionEnded,
   });
 
-  final AuthApi _api;
-  final TokenStore _store;
-  final SessionToken? Function() _readAccess;
-  final void Function(SessionToken token) _writeAccess;
-  final Dio _retryWith;
-  final void Function() _onSessionEnded;
+  final AuthApi api;
+  final TokenStore store;
+  final SessionToken? Function() readAccess;
+  final void Function(SessionToken token) writeAccess;
+  final Dio retryWith;
+  final void Function() onSessionEnded;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    if (_readAccess() case final token?) {
+    if (readAccess() case final token?) {
       options.headers['Authorization'] = 'Bearer ${token.value}';
     }
     handler.next(options);
@@ -40,22 +40,51 @@ class SessionInterceptor extends Interceptor {
       handler.next(err);
       return;
     }
-    final refreshToken = await _store.read();
-    if (refreshToken == null) {
-      _onSessionEnded();
+    // Do not refresh a retry or a request that wasn't authenticated.
+    final oldAuthorization = err.requestOptions.headers['Authorization'];
+    if (oldAuthorization == null) {
       handler.next(err);
       return;
     }
     try {
-      final pair = await _api.refresh(refreshToken);
-      await _store.write(pair.refreshToken);
-      _writeAccess((value: pair.accessToken, expiresAt: pair.expiresAt));
-      final options = err.requestOptions
-        ..headers['Authorization'] = 'Bearer ${pair.accessToken}';
-      handler.resolve(await _retryWith.fetch<Object?>(options));
+      var access = readAccess();
+      if (access == null || oldAuthorization == 'Bearer ${access.value}') {
+        final refreshToken = await store.read();
+        if (refreshToken == null) {
+          onSessionEnded();
+          handler.next(err);
+          return;
+        }
+        final pair = await api.refresh(refreshToken);
+        await store.write(pair.refreshToken);
+        access = (value: pair.accessToken, expiresAt: pair.expiresAt);
+        writeAccess(access);
+      }
+      final options = err.requestOptions;
+      options.headers['Authorization'] = 'Bearer ${access.value}';
+      final response = await retryWith.fetch<Object?>(options);
+      handler.resolve(response);
     } on DioException catch (refreshError) {
-      _onSessionEnded();
-      handler.next(refreshError);
+      // Only an explicit refusal of refresh revokes the local session.
+      if (refreshError.response?.statusCode == 401 ||
+          refreshError.response?.statusCode == 403) {
+        onSessionEnded();
+      }
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          error: failureFrom(refreshError),
+          type: DioExceptionType.unknown,
+        ),
+      );
+    } on Object catch (error) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          error: failureFrom(error),
+          type: DioExceptionType.unknown,
+        ),
+      );
     }
   }
 }

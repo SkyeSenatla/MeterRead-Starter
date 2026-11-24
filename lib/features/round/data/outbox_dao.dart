@@ -16,11 +16,13 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     String meterId, {
     required int value,
     required bool meterReplaced,
+    required String idempotencyKey,
   }) => into(pendingReadings).insertOnConflictUpdate(
     PendingReadingsCompanion.insert(
       meterId: meterId,
       value: value,
       meterReplaced: meterReplaced,
+      idempotencyKey: Value(idempotencyKey),
       capturedAt: DateTime.now(),
     ),
   );
@@ -44,6 +46,10 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
       (update(pendingReadings)..where((p) => p.meterId.equals(meterId))).write(
         PendingReadingsCompanion(lastError: Value(message)),
       );
+
+  /// All readings still waiting, for an honest sign-out warning.
+  Future<int> waitingCount() async =>
+      (await select(pendingReadings).get()).length;
 
   /// The server has it, or the reader discarded it.
   Future<void> remove(String meterId) =>

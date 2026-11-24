@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meterread/features/auth/presentation/sign_in_screen.dart';
+import 'package:meterread/features/auth/presentation/restore_screen.dart';
 import 'package:meterread/features/round/presentation/meter_screen.dart';
 import 'package:meterread/features/round/presentation/round_screen.dart';
 
@@ -14,7 +15,7 @@ class SplashRoute extends GoRouteData with $SplashRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
+      const RestoreScreen();
 }
 
 /// /sign-in.

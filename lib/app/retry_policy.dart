@@ -1,8 +1,8 @@
-/// When Riverpod may retry a provider that failed. Keep this name: main()
-/// and the test harness both use it.
-///
-/// Three tries, 200 ms, 400 ms and 800 ms apart.
+import 'package:meterread/core/failure/failure.dart';
+
+/// Only retry requests which received no answer. Never retry a response,
+/// especially a write, a validation error or a server fault.
 Duration? appRetryPolicy(int retryCount, Object error) {
-  if (retryCount >= 3) return null;
+  if (retryCount >= 3 || failureFrom(error) is! NoSignalFailure) return null;
   return Duration(milliseconds: 200 * (1 << retryCount));
 }

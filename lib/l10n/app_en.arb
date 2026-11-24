@@ -1,66 +1,190 @@
 {
   "@@locale": "en",
   "appTitle": "MeterRead",
-  "@appTitle": {"description": "The app's name. Not translated."},
+  "@appTitle": {
+    "description": "The app's name. Not translated."
+  },
   "signInTitle": "Sign in",
-  "@signInTitle": {"description": "Title of the sign-in screen."},
+  "@signInTitle": {
+    "description": "Title of the sign-in screen."
+  },
   "emailLabel": "Email",
-  "@emailLabel": {"description": "Label of the email field."},
+  "@emailLabel": {
+    "description": "Label of the email field."
+  },
   "passwordLabel": "Password",
-  "@passwordLabel": {"description": "Label of the password field."},
+  "@passwordLabel": {
+    "description": "Label of the password field."
+  },
   "signInButton": "Sign in",
-  "@signInButton": {"description": "The button that signs the reader in."},
+  "@signInButton": {
+    "description": "The button that signs the reader in."
+  },
   "roundTitle": "Today's round",
-  "@roundTitle": {"description": "Title of the round screen: the meters a reader visits today."},
+  "@roundTitle": {
+    "description": "Title of the round screen: the meters a reader visits today."
+  },
   "signOut": "Sign out",
-  "@signOut": {"description": "Signs the reader out."},
+  "@signOut": {
+    "description": "Signs the reader out."
+  },
   "tryAgain": "Try again",
-  "@tryAgain": {"description": "Asks the server again after a failure."},
+  "@tryAgain": {
+    "description": "Asks the server again after a failure."
+  },
   "statusDue": "Due",
-  "@statusDue": {"description": "A meter that hasn't been read this month."},
+  "@statusDue": {
+    "description": "A meter that hasn't been read this month."
+  },
   "statusRead": "Read",
-  "@statusRead": {"description": "A meter that has been read this month."},
+  "@statusRead": {
+    "description": "A meter that has been read this month."
+  },
   "statusQuery": "Query",
-  "@statusQuery": {"description": "A meter read twice this month, which the billing office will query."},
+  "@statusQuery": {
+    "description": "A meter read twice this month, which the billing office will query."
+  },
   "statusUnknown": "Status not recognised",
-  "@statusUnknown": {"description": "A status this version of the app doesn't know."},
+  "@statusUnknown": {
+    "description": "A status this version of the app doesn't know."
+  },
   "meterAndAccount": "Meter {meterNumber} · Account {accountNumber}",
   "@meterAndAccount": {
     "description": "The numbers that identify a meter and the account it bills.",
-    "placeholders": {"meterNumber": {"type": "String"}, "accountNumber": {"type": "String"}}
+    "placeholders": {
+      "meterNumber": {
+        "type": "String"
+      },
+      "accountNumber": {
+        "type": "String"
+      }
+    }
   },
   "lastReading": "Last reading {reading} kWh on {date}",
   "@lastReading": {
     "description": "Last month's reading and the day it was read.",
-    "placeholders": {"reading": {"type": "String"}, "date": {"type": "String"}}
+    "placeholders": {
+      "reading": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "thisCycle": "This month: {reading} kWh, {used} kWh used",
   "@thisCycle": {
     "description": "This month's accepted reading and the consumption the server worked out.",
-    "placeholders": {"reading": {"type": "String"}, "used": {"type": "String"}}
+    "placeholders": {
+      "reading": {
+        "type": "String"
+      },
+      "used": {
+        "type": "String"
+      }
+    }
   },
   "readThisCycle": "Read this month.",
-  "@readThisCycle": {"description": "The meter was read this month, on another phone."},
+  "@readThisCycle": {
+    "description": "The meter was read this month, on another phone."
+  },
   "flagged": "Unusually high. The office will check it.",
-  "@flagged": {"description": "The server flagged the consumption as unusually high."},
+  "@flagged": {
+    "description": "The server flagged the consumption as unusually high."
+  },
   "queryExplained": "Read twice this month. The billing office will query it.",
-  "@queryExplained": {"description": "Shown on a meter with two readings this month."},
+  "@queryExplained": {
+    "description": "Shown on a meter with two readings this month."
+  },
   "earlierReadings": "Earlier readings",
-  "@earlierReadings": {"description": "Heading above the last three months' readings."},
+  "@earlierReadings": {
+    "description": "Heading above the last three months' readings."
+  },
   "pastReading": "{reading} kWh on {date}",
   "@pastReading": {
     "description": "One earlier month's reading.",
-    "placeholders": {"reading": {"type": "String"}, "date": {"type": "String"}}
+    "placeholders": {
+      "reading": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "meterReplaced": "Meter replaced",
-  "@meterReplaced": {"description": "Tick box: the meter was replaced, so a lower reading is right."},
+  "@meterReplaced": {
+    "description": "Tick box: the meter was replaced, so a lower reading is right."
+  },
   "saveReading": "Save reading",
-  "@saveReading": {"description": "Saves the reading and sends it to the server."},
+  "@saveReading": {
+    "description": "Saves the reading and sends it to the server."
+  },
   "notSentYet": "Not sent yet: {reading} kWh",
   "@notSentYet": {
     "description": "A reading on the phone that the server doesn't have yet.",
-    "placeholders": {"reading": {"type": "String"}}
+    "placeholders": {
+      "reading": {
+        "type": "String"
+      }
+    }
   },
   "discard": "Discard",
-  "@discard": {"description": "Throws away a reading that wasn't sent."}
+  "@discard": {
+    "description": "Throws away a reading that wasn't sent."
+  },
+  "noSignal": "No signal. Check your connection and try again.",
+  "checkReading": "Check the reading and try again.",
+  "signInIncorrect": "That email and password don't match.",
+  "meterNotFound": "Meter not found.",
+  "serverError": "Something went wrong on our side.",
+  "unexpectedError": "Something unexpected happened. Please try again.",
+  "errorReference": "Reference {reference}",
+  "@errorReference": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "metersLeft": "{count, plural, =0{0 meters left} one{1 meter left} other{{count} meters left}}",
+  "@metersLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineUpdated": "No signal. Last updated {time}.",
+  "@offlineUpdated": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "lastUpdated": "Last updated {time}.",
+  "@lastUpdated": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "readingLabel": "Reading in kWh",
+  "readingExample": "e.g. 48 590",
+  "enterReading": "Enter the reading.",
+  "digitsOnly": "Use digits only, like 48 590.",
+  "sendNow": "Send now",
+  "refreshRound": "Refresh round",
+  "pendingWarning": "{count, plural, one{1 reading hasn’t been sent. Signing out will lose it.} other{{count} readings haven’t been sent. Signing out will lose them.}}",
+  "@pendingWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "confirmSignOut": "Sign out anyway"
 }

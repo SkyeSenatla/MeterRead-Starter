@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meterread/app/format.dart';
+import 'package:meterread/core/failure/failure.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
 import 'package:meterread/features/round/domain/meter.dart';
 import 'package:meterread/features/round/presentation/reading_form.dart';
 import 'package:meterread/features/round/presentation/round_providers.dart';
+import 'package:meterread/features/round/presentation/widgets/failure_message.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
-/// One meter: what the server knows about it, and the reading form while
-/// it's due.
 class MeterScreen extends ConsumerWidget {
-  /// Creates the screen for [meterId].
   const new({required this.meterId, super.key});
-
-  /// `M-1001`.
   final String meterId;
 
   @override
@@ -22,23 +19,24 @@ class MeterScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(meterId), actions: const [TestToolsButton()]),
       body: switch (ref.watch(meterDetailProvider(meterId))) {
         AsyncData(:final value) => _MeterBody(meter: value),
-        AsyncError(:final error) => Center(child: Text('$error')),
+        AsyncError(:final error) => FailureMessage(
+          failure: failureFrom(error),
+          onRetry: () => ref.invalidate(meterDetailProvider(meterId)),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );
   }
 }
 
-class _MeterBody extends ConsumerWidget {
+class _MeterBody extends StatelessWidget {
   const new({required this.meter});
-
   final Meter meter;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
-    final pending = ref.watch(pendingReadingProvider(meter.id)).value;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -64,31 +62,7 @@ class _MeterBody extends ConsumerWidget {
           Text(l10n.readThisCycle),
         if (meter.status == MeterStatus.query) Text(l10n.queryExplained),
         const SizedBox(height: 16),
-        if (pending != null)
-          Card(
-            child: ListTile(
-              title: Text(l10n.notSentYet(formatKwh(pending.value))),
-              subtitle: pending.lastError == null
-                  ? null
-                  : Text(pending.lastError!),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: () => _sendNow(context, ref),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        ref.read(readingOutboxProvider).discard(meter.id),
-                    child: Text(l10n.discard),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else if (meter.status == MeterStatus.due)
-          ReadingForm(meterId: meter.id),
+        if (meter.status == MeterStatus.due) ReadingForm(meterId: meter.id),
         const SizedBox(height: 16),
         Text(l10n.earlierReadings, style: text.titleMedium),
         for (final past in meter.history)
@@ -100,19 +74,6 @@ class _MeterBody extends ConsumerWidget {
           ),
       ],
     );
-  }
-
-  Future<void> _sendNow(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final container = ProviderScope.containerOf(context, listen: false);
-    try {
-      await container.read(readingOutboxProvider).send(meter.id);
-      container
-        ..invalidate(meterDetailProvider(meter.id))
-        ..invalidate(roundProvider);
-    } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
-    }
   }
 
   static String _statusWord(AppLocalizations l10n, MeterStatus status) =>

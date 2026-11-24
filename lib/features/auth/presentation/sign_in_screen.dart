@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meterread/core/fakes/test_tools.dart';
+import 'package:meterread/core/failure/failure.dart';
+import 'package:meterread/features/round/presentation/widgets/failure_message.dart';
 import 'package:meterread/features/auth/presentation/auth_controller.dart';
 import 'package:meterread/l10n/app_localizations.dart';
 
@@ -36,7 +38,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           .read(authControllerProvider.notifier)
           .signIn(_email.text, _password.text);
     } on Object catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted) setState(() => _error = failureFrom(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -71,9 +73,19 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           if (_error case final error?)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                '$error',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              child: Column(
+                children: [
+                  Text(
+                    failureMessage(l10n, failureFrom(error)),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _busy ? null : _signIn,
+                    child: Text(l10n.tryAgain),
+                  ),
+                ],
               ),
             ),
           FilledButton(
